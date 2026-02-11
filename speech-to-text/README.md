@@ -14,6 +14,7 @@ Convert audio to text using Smallest AI's Pulse Speech-to-Text API. Supports 30+
 | [Meeting Notes](./meeting-notes/) | Join meetings via Recall.ai, auto-identify speakers by name |
 | [Podcast Summarizer](./podcast-summarizer/) | Transcribe and summarize podcasts with GPT-4o |
 | [File Transcription](./file-transcription/) | Transcribe files with all advanced features |
+| [Emotion Analyzer](./emotion-analyzer/) | Visualize speaker emotions across a conversation with interactive charts |
 
 ### WebSocket Examples
 

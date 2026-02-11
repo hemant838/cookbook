@@ -96,7 +96,7 @@ Convert audio and video to text with industry-leading accuracy. Supports 30+ lan
 - [Jarvis Voice Assistant](./speech-to-text/websocket/jarvis/) — Always-on assistant with wake word detection, LLM reasoning, and TTS
 - [Online Meeting Notetaker](./speech-to-text/online-meeting-notetaking-bot/) — Join Google Meet / Zoom / Teams via Recall.ai, auto-identify speakers by name, generate structured notes
 - [Podcast Summarizer](./speech-to-text/podcast-summarizer/) — Transcribe and summarize podcasts with key takeaways using GPT
-- [YouTube Summarizer](./speech-to-text/youtube-summarizer/) — Extract audio from YouTube videos and generate concise summaries
+- [Emotion Analyzer](./speech-to-text/emotion-analyzer/) — Visualize speaker emotions across a conversation with interactive charts
 
 **[See all Speech-to-Text examples &rarr;](./speech-to-text/)**
 
