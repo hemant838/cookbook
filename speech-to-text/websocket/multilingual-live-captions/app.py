@@ -17,17 +17,19 @@ Outputs:
 
 import json
 import os
-import queue
-import threading
+import sys
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import List
-from urllib.parse import urlencode
 
 import gradio as gr
 import numpy as np
 from dotenv import load_dotenv
 from openai import OpenAI
-from websockets.sync.client import connect
+
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from subtitle_utils import generate_srt
+from stt_session import TranscriptionSession
 
 load_dotenv()
 
@@ -60,89 +62,6 @@ def translate_text(text: str, target_language: str) -> str:
         return text
 
 
-class TranscriptionSession:
-    def __init__(self):
-        self.ws = None
-        self.response_queue = queue.Queue()
-        self.receiver_thread = None
-        self.is_active = False
-
-    def start(self):
-        if self.is_active:
-            return
-
-        params = {
-            "language": "multi",  # auto-detect
-            "encoding": "linear16",
-            "sample_rate": SAMPLE_RATE,
-        }
-        url = f"{WS_URL}?{urlencode(params)}"
-        headers = {"Authorization": f"Bearer {API_KEY}"}
-
-        try:
-            self.ws = connect(url, additional_headers=headers, open_timeout=30)
-        except Exception as e:
-            raise SystemExit(f"Error connecting to STT WebSocket: {e}")
-
-        self.is_active = True
-        self.response_queue = queue.Queue()
-
-        self.receiver_thread = threading.Thread(target=self._receive_responses, daemon=True)
-        self.receiver_thread.start()
-
-    def _receive_responses(self):
-        try:
-            for message in self.ws:
-                result = json.loads(message)
-                if result.get("is_final"):
-                    self.response_queue.put(result)
-                if result.get("is_last"):
-                    break
-        except Exception as e:
-            self.response_queue.put({"error": str(e)})
-        finally:
-            self.is_active = False
-
-    def send_audio(self, audio_data: bytes):
-        if self.ws and self.is_active:
-            try:
-                self.ws.send(audio_data)
-            except Exception:
-                self.is_active = False
-
-    def end_session(self):
-        if self.ws and self.is_active:
-            try:
-                self.ws.send(json.dumps({"type": "end"}))
-            except Exception:
-                pass
-
-    def consume_results(self) -> List[dict]:
-        results = []
-        while not self.response_queue.empty():
-            try:
-                results.append(self.response_queue.get_nowait())
-            except queue.Empty:
-                break
-        return results
-
-    def close(self):
-        self.is_active = False
-        if self.ws:
-            try:
-                self.ws.close()
-            except Exception:
-                pass
-            self.ws = None
-
-
-def format_timestamp(seconds: float) -> str:
-    ms = int(seconds * 1000)
-    hours, ms = divmod(ms, 3600 * 1000)
-    minutes, ms = divmod(ms, 60 * 1000)
-    secs, ms = divmod(ms, 1000)
-    return f"{hours:02}:{minutes:02}:{secs:02},{ms:03}"
-
 
 @dataclass
 class CaptionAccumulator:
@@ -167,16 +86,7 @@ class CaptionAccumulator:
         self.detected_language = "auto"
 
     def to_srt(self) -> str:
-        lines = []
-        for idx, entry in enumerate(self.entries, start=1):
-            lines.append(str(idx))
-            lines.append(f"{format_timestamp(entry['start'])} --> {format_timestamp(entry['end'])}")
-            lines.append(entry["translation"])
-            lines.append("")
-        return "\n".join(lines).strip()
-
-
-session = TranscriptionSession()
+        return generate_srt(self.entries, text_key="translation", start_key="start", end_key="end")
 
 
 def resample_audio(audio: np.ndarray, sr: int) -> np.ndarray:
@@ -193,20 +103,26 @@ def resample_audio(audio: np.ndarray, sr: int) -> np.ndarray:
     )
 
 
-def process_audio(audio, target_language, captions_state: CaptionAccumulator, is_recording: bool):
+def process_audio(audio, target_language, captions_state: CaptionAccumulator, session: TranscriptionSession, is_recording: bool):
     if audio is None:
         session.end_session()
         session.close()
         captions_state.reset()
-        return "", "", "", captions_state, False
+        return "", "", "", captions_state, session, False
 
     sr, audio_data = audio
     if audio_data is None or len(audio_data) == 0:
-        return captions_state.last_source, captions_state.last_translation, captions_state.to_srt(), captions_state, is_recording
+        return captions_state.last_source, captions_state.last_translation, captions_state.to_srt(), captions_state, session, is_recording
 
     if not is_recording:
         captions_state.reset()
-        session.start()
+        session.start(
+            api_key=API_KEY,
+            ws_url=WS_URL,
+            language="multi",
+            sample_rate=SAMPLE_RATE,
+            raise_on_error=True,
+        )
         is_recording = True
 
     if audio_data.ndim > 1:
@@ -237,15 +153,16 @@ def process_audio(audio, target_language, captions_state: CaptionAccumulator, is
         captions_state.last_translation,
         captions_state.to_srt(),
         captions_state,
+        session,
         is_recording,
     )
 
 
-def clear_all(captions_state: CaptionAccumulator):
+def clear_all(captions_state: CaptionAccumulator, session: TranscriptionSession):
     session.end_session()
     session.close()
     captions_state.reset()
-    return "", "", "", captions_state, False
+    return "", "", "", captions_state, session, False
 
 
 with gr.Blocks(
@@ -258,6 +175,7 @@ with gr.Blocks(
     )
 
     captions_state = gr.State(CaptionAccumulator())
+    session_state = gr.State(TranscriptionSession())
     is_recording_state = gr.State(False)
 
     target_lang = gr.Dropdown(
@@ -302,24 +220,26 @@ with gr.Blocks(
 
     audio_input.stream(
         fn=process_audio,
-        inputs=[audio_input, target_lang, captions_state, is_recording_state],
+        inputs=[audio_input, target_lang, captions_state, session_state, is_recording_state],
         outputs=[
             transcript_output,
             translation_output,
             subtitle_output,
             captions_state,
+            session_state,
             is_recording_state,
         ],
     )
 
     clear_btn.click(
         fn=clear_all,
-        inputs=[captions_state],
+        inputs=[captions_state, session_state],
         outputs=[
             transcript_output,
             translation_output,
             subtitle_output,
             captions_state,
+            session_state,
             is_recording_state,
         ],
     )
