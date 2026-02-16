@@ -58,3 +58,6 @@ htmlcov/
 
 # SmallestAI config
 .smallestai/
+
+# Project files (cookbooks use requirements.txt only)
+pyproject.toml

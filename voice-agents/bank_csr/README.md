@@ -226,7 +226,7 @@ Both nodes receive the same event stream. The `AuditLogger` silently observes an
 | `csr_agent.py` | ~751 | Rekha (`OutputAgentNode`) — system prompt, `generate_response`, all 10 tools |
 | `audit_logger.py` | ~108 | `AuditLogger` (`BackgroundAgentNode`) — compliance event logging |
 | `database.py` | ~463 | SQLite schema, seed data (1 customer, 75+ transactions), query helpers |
-| `pyproject.toml` | ~9 | Dependencies |
+| `requirements.txt` | ~2 | Dependencies |
 
 ---
 

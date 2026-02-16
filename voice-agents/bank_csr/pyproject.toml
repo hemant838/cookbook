@@ -1,8 +1,0 @@
-[project]
-name = "atoms-bank-csr"
-version = "0.1.0"
-description = "Banking Customer Support Rep agent with real database access"
-requires-python = ">=3.12"
-dependencies = [
-    "smallestai>=4.3.0",
-]
