@@ -6,7 +6,9 @@ Say "Jarvis" followed by your question to get a spoken response. Mention "screen
 
 ## Demo
 
-[Watch Demo](./demo.mp4)
+
+https://github.com/user-attachments/assets/81abd57c-f4a1-4922-86c8-8514a13845d0
+
 
 ## Features
 
