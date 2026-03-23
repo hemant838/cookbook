@@ -24,7 +24,7 @@ from subtitle_utils import format_timestamp_srt, format_timestamp_vtt, generate_
 
 load_dotenv()
 
-API_URL = "https://waves-api.smallest.ai/api/v1/pulse/get_text"
+API_URL = "https://api.smallest.ai/waves/v1/pulse/get_text"
 
 LANGUAGE = "en"  # Use ISO 639-1 codes or "multi" for auto-detect
 WORDS_PER_SEGMENT = 10  # Maximum words per subtitle segment

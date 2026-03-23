@@ -33,7 +33,7 @@ from stt_session import TranscriptionSession
 
 load_dotenv()
 
-WS_URL = "wss://waves-api.smallest.ai/api/v1/pulse/get_text"
+WS_URL = "wss://api.smallest.ai/waves/v1/pulse/get_text"
 SAMPLE_RATE = 16000
 API_KEY = os.environ.get("SMALLEST_API_KEY")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")

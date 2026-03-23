@@ -42,7 +42,7 @@ class TranscriptionSession:
     def start(
         self,
         api_key: str,
-        ws_url: str = "wss://waves-api.smallest.ai/api/v1/pulse/get_text",
+        ws_url: str = "wss://api.smallest.ai/waves/v1/pulse/get_text",
         language: str = "en",
         sample_rate: int = 16000,
         encoding: str = "linear16",
@@ -126,7 +126,7 @@ class TranscriptionSession:
         """Signal the end of the audio stream to the server."""
         if self.ws and self.is_active:
             try:
-                self.ws.send(json.dumps({"type": "end"}))
+                self.ws.send(json.dumps({"type": "finalize"}))
             except Exception:
                 pass
 
